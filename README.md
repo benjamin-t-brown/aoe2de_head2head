@@ -1,17 +1,17 @@
-* AOE2:DE Head2Head *
+# AOE2:DE Head2Head
 
 This is a command line app that uses the aoe2.net api to lookup a user by team ranking and output their win/loss records vs other players.
 
-** Features **
+## Features
 - Outputs a csv of player matchup information (wins and losses)
 - Shows the team elo of all players in the most recent (including current) game being played
 
-** Requires **
+## Requires
 
 Rust toolchain (cargo, rustc, etc.)
 
 
-** Usage **
+## Usage
 ```
     cargo run "<playerName>"
 ```
@@ -22,7 +22,7 @@ The header of the csv is this:
 
 ```profile_id,player_name,wins_against,losses_to,elo,date_last_played```
 
-** Example **
+## Example
 
 ```
     $ cargo run minjammben
