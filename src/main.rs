@@ -108,7 +108,7 @@ fn run(fetch_name: &str) -> Result<(), RuntimeError> {
     } else {
       println!(
         "Game is complete! (most likely) rating_now={} rating_in_game={}",
-        r1, r2
+        r2, r1
       );
       println!("");
     }
