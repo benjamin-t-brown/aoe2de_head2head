@@ -3,9 +3,11 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
+use crate::error::RuntimeError;
+
 const AOE2NET_API_BASE_URL: &'static str = "https://aoe2.net/api";
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum LeaderboardId {
   Unranked = 2,
   RankedSolo = 3,
@@ -15,9 +17,13 @@ pub enum LeaderboardId {
 impl LeaderboardId {
   pub fn to_leaderboard_id(leaderboard_id: i32) -> LeaderboardId {
     let id = match leaderboard_id {
-      leaderboard_id if leaderboard_id == LeaderboardId::RankedSolo as i32 => LeaderboardId::RankedSolo,
-      leaderboard_id if leaderboard_id == LeaderboardId::RankedTeam as i32 => LeaderboardId::RankedTeam,
-      _ => LeaderboardId::Unranked
+      leaderboard_id if leaderboard_id == LeaderboardId::RankedSolo as i32 => {
+        LeaderboardId::RankedSolo
+      }
+      leaderboard_id if leaderboard_id == LeaderboardId::RankedTeam as i32 => {
+        LeaderboardId::RankedTeam
+      }
+      _ => LeaderboardId::Unranked,
     };
     return id;
   }
@@ -70,6 +76,7 @@ pub struct MatchHistoryPlayerResponse {
   pub team: Option<i32>,
   pub name: Option<String>,
   pub rating: Option<i32>,
+  pub won: Option<bool>,
 }
 
 impl MatchHistoryPlayerResponse {
@@ -97,6 +104,12 @@ impl MatchHistoryPlayerResponse {
       Some(r) => r,
     }
   }
+  pub fn is_win(&self) -> bool {
+    match self.won {
+      Some(value) => value,
+      None => false,
+    }
+  }
 }
 
 #[derive(serde::Deserialize, Debug, Clone, Default)]
@@ -109,6 +122,7 @@ pub struct MatchHistoryGameResponse {
   pub lobby_id: Option<String>,
   pub match_uuid: Option<String>,
   pub version: Option<String>,
+  pub finished: Option<i32>,
   pub players: Vec<MatchHistoryPlayerResponse>,
 }
 
@@ -136,7 +150,7 @@ impl<'a> MatchHistoryGameResponse {
   pub fn get_leaderboard_id(&self) -> LeaderboardId {
     match self.leaderboard_id {
       Some(id) => LeaderboardId::to_leaderboard_id(id),
-      None => LeaderboardId::Unranked
+      None => LeaderboardId::Unranked,
     }
   }
   pub fn get_team_id_by_profile_id(self: &'a MatchHistoryGameResponse, profile_id: i32) -> i32 {
@@ -178,13 +192,21 @@ impl<'a> MatchHistoryGameResponse {
     my_team.retain(|player| player.get_profile_id() != my_profile_id);
     return my_team;
   }
+  pub fn get_match_id(&self) -> &str {
+    return &self.match_id;
+  }
+  // pub fn is_finished(&self) -> bool {
+  //   return match self.finished {
+  //     Some(_) => true,
+  //     None => false,
+  //   };
+  // }
 }
 
 pub fn fetch_player(
   name: &str,
   leaderboard_id: LeaderboardId,
 ) -> Result<Option<PlayerResponse>, reqwest::Error> {
-  println!("Lookup: '{}'", name);
   let url = format!(
     "{}/leaderboard?start=1&leaderboard_id={leaderboard_id}&search={name}",
     AOE2NET_API_BASE_URL,
@@ -198,6 +220,23 @@ pub fn fetch_player(
     return Ok(None);
   }
   Ok(Some(players.leaderboard[0].clone()))
+}
+
+pub fn fetch_rating(name: &str, leaderboard_id: LeaderboardId) -> i32 {
+  let _fetch_rating = || -> Result<i32, RuntimeError> {
+    match fetch_player(&name, leaderboard_id)? {
+      Some(m) => Ok(m.get_rating()),
+      None => Ok(-1),
+    }
+  };
+
+  return match _fetch_rating() {
+    Ok(v) => v,
+    Err(err) => {
+      eprintln!("error: {:?}", err);
+      1
+    }
+  };
 }
 
 pub fn fetch_match_history(
