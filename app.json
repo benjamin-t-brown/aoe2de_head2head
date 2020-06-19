@@ -1,0 +1,11 @@
+{
+  "name": "AOE2: DE Head2Head",
+  "description": "A Rust application for displaying the matchup history between AOE2: DE players",
+  "repository": "https://github.com/benjamin-t-brown/aoe2de_head2head",
+  "success_url": "/",
+  "keywords": ["aoe2", "aoe2de", "rust", "actix", "react", "typescript"],
+  "website": "https://github.com/benjamin-t-brown/aoe2de_head2head",
+  "env": {
+    "BUILDPACK_URL": "https://github.com/emk/heroku-buildpack-rust.git"
+  }
+}

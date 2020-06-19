@@ -1,4 +1,4 @@
-# AOE2:DE Head2Head
+# AOE2: DE Head2Head
 
 This is a command line app that uses the aoe2.net api to lookup a user by team ranking and output their win/loss records vs other players.
 

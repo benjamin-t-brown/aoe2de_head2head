@@ -4,6 +4,7 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use crate::error::RuntimeError;
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 const AOE2NET_API_BASE_URL: &'static str = "https://aoe2.net/api";
 
@@ -68,15 +69,30 @@ pub struct LookupPlayerResponse {
   pub start: i32,
   pub count: i32,
   pub leaderboard: Vec<PlayerResponse>,
+  pub steam_id: Option<String>,
 }
 
 #[derive(serde::Deserialize, Debug, Clone, Default)]
 pub struct MatchHistoryPlayerResponse {
   pub profile_id: Option<i32>,
+  pub steam_id: Option<String>,
   pub team: Option<i32>,
   pub name: Option<String>,
   pub rating: Option<i32>,
   pub won: Option<bool>,
+}
+
+impl Serialize for MatchHistoryPlayerResponse {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("PlayerTracker", 2)?;
+    state.serialize_field("profile_id", &self.profile_id)?;
+    state.serialize_field("steam_id", &self.get_steam_id())?;
+    state.serialize_field("name", &self.get_name())?;
+    state.end()
+  }
 }
 
 impl MatchHistoryPlayerResponse {
@@ -84,6 +100,12 @@ impl MatchHistoryPlayerResponse {
     match self.profile_id {
       None => 0,
       Some(r) => r,
+    }
+  }
+  pub fn get_steam_id(&self) -> String {
+    match &self.steam_id {
+      None => String::default(),
+      Some(r) => String::from(r),
     }
   }
   pub fn get_rating(&self) -> i32 {
@@ -213,9 +235,27 @@ pub fn fetch_player(
     leaderboard_id = leaderboard_id,
     name = name
   );
-  println!("{}", url);
+  println!("[fetch] {}", url);
   let res = reqwest::blocking::get(&url)?;
   let players: LookupPlayerResponse = res.json()?;
+  if players.count == 0 {
+    return Ok(None);
+  }
+  Ok(Some(players.leaderboard[0].clone()))
+}
+
+pub async fn fetch_player_async(
+  name: &str,
+  leaderboard_id: LeaderboardId,
+) -> Result<Option<PlayerResponse>, reqwest::Error> {
+  let url = format!(
+    "{}/leaderboard?start=1&leaderboard_id={leaderboard_id}&search={name}",
+    AOE2NET_API_BASE_URL,
+    leaderboard_id = leaderboard_id,
+    name = name
+  );
+  println!("[fetch] {}", url);
+  let players: LookupPlayerResponse = reqwest::get(&url).await?.json().await?;
   if players.count == 0 {
     return Ok(None);
   }
@@ -248,8 +288,22 @@ pub fn fetch_match_history(
     AOE2NET_API_BASE_URL,
     profile_id = profile_id,
   );
-  println!("{}", url);
+  println!("[fetch] {}", url);
   let res = reqwest::blocking::get(&url)?;
   let match_history: Vec<MatchHistoryGameResponse> = res.json()?;
+  Ok(Some(match_history))
+}
+
+pub async fn fetch_match_history_async(
+  profile_id: i32,
+) -> Result<Option<Vec<MatchHistoryGameResponse>>, reqwest::Error> {
+  println!("Get match history for id: '{}'", profile_id);
+  let url = format!(
+    "{}/player/matches?game=aoe2de&start=0&count=999&profile_id={profile_id}",
+    AOE2NET_API_BASE_URL,
+    profile_id = profile_id,
+  );
+  println!("[fetch] {}", url);
+  let match_history: Vec<MatchHistoryGameResponse> = reqwest::get(&url).await?.json().await?;
   Ok(Some(match_history))
 }

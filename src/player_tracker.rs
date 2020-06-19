@@ -1,14 +1,5 @@
-extern crate chrono;
-
 use crate::fetch;
-use chrono::prelude::*;
-
-fn timestamp_to_string(timestamp: i64) -> String {
-  let naive = NaiveDateTime::from_timestamp(timestamp, 0);
-  let date_time: DateTime<Utc> = DateTime::from_utc(naive, Utc);
-  let date = date_time.format("%Y-%m-%d %H:%M:%S");
-  return format!("{}", date);
-}
+use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 pub struct Record {
   pub profile_id: i32,
@@ -16,6 +7,20 @@ pub struct Record {
   pub losses_to: i32,
   pub games: Vec<fetch::MatchHistoryGameResponse>,
   pub last_played_against: String,
+}
+
+impl Serialize for Record {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("Record", 4)?;
+    state.serialize_field("profile_id", &self.profile_id)?;
+    state.serialize_field("wins_against", &self.wins_against)?;
+    state.serialize_field("losses_to", &self.losses_to)?;
+    state.serialize_field("last_played_against", &self.last_played_against)?;
+    state.end()
+  }
 }
 
 impl Record {
@@ -33,7 +38,7 @@ impl Record {
       wins_against = self.wins_against,
       losses_to = self.losses_to,
       elo = player.get_rating(),
-      date = timestamp_to_string(game.started)
+      date = crate::format::timestamp_to_date(game.started)
     );
   }
 }
@@ -43,6 +48,22 @@ pub struct PlayerTracker {
   pub wins: i32,
   pub losses: i32,
   pub records: std::collections::HashMap<i32, Record>,
+  pub players: std::collections::HashMap<i32, fetch::MatchHistoryPlayerResponse>,
+}
+
+impl Serialize for PlayerTracker {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut state = serializer.serialize_struct("PlayerTracker", 5)?;
+    state.serialize_field("profile_id", &self.profile_id)?;
+    state.serialize_field("wins", &self.wins)?;
+    state.serialize_field("losses", &self.losses)?;
+    state.serialize_field("records", &self.records)?;
+    state.serialize_field("players", &self.players)?;
+    state.end()
+  }
 }
 
 impl PlayerTracker {
@@ -52,8 +73,31 @@ impl PlayerTracker {
       wins: 0,
       losses: 0,
       records: std::collections::HashMap::new(),
+      players: std::collections::HashMap::new(),
     }
   }
+  pub fn track_players(&mut self, match_history: &std::vec::Vec<fetch::MatchHistoryGameResponse>) {
+    let profile_id = self.profile_id;
+    println!("Processing match history: {} games", match_history.len());
+
+    for i in (0..match_history.len() - 1).rev() {
+      let game = &match_history[i];
+      self.process_match(game);
+      let other_team = game.get_opposing_team(profile_id);
+      for &enemy_player in &other_team {
+        self
+          .players
+          .insert(enemy_player.get_profile_id(), enemy_player.clone());
+      }
+      let my_team = game.get_my_team(profile_id);
+      for &ally_player in &my_team {
+        self
+          .players
+          .insert(ally_player.get_profile_id(), ally_player.clone());
+      }
+    }
+  }
+
   pub fn add_record(
     &mut self,
     other_profile_id: i32,
@@ -84,7 +128,7 @@ impl PlayerTracker {
             wins_against: win_ctr,
             losses_to: loss_ctr,
             games: vec![game.clone()],
-            last_played_against: timestamp_to_string(game.started),
+            last_played_against: crate::format::timestamp_to_date(game.started),
           },
         );
         return;

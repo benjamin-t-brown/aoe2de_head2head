@@ -1,42 +1,16 @@
+mod endpoints;
 mod error;
 mod fetch;
+mod format;
 mod player_tracker;
+mod server;
 
-extern crate chrono;
-
-use chrono::prelude::*;
 use error::RuntimeError;
 use std::env;
 use std::fs::File;
 use std::io::Write;
 
-fn timestamp_to_date(timestamp: i64) -> String {
-  let naive = NaiveDateTime::from_timestamp(timestamp, 0);
-  let date_time: DateTime<Utc> = DateTime::from_utc(naive, Utc);
-  return format!("{}", date_time.format("%Y-%m-%d %H:%M:%S"));
-}
-
-fn leaderboard_id_to_name(leaderboard_id: fetch::LeaderboardId) -> String {
-  return if leaderboard_id == fetch::LeaderboardId::RankedSolo {
-    String::from("solo")
-  } else {
-    String::from("team")
-  };
-}
-
-fn ratings_to_string(
-  leaderboard_name1: &str,
-  rating1: i32,
-  leaderboard_name2: &str,
-  rating2: i32,
-) -> String {
-  return format!(
-    "({} elo in game={}, current {} elo={})",
-    leaderboard_name1, rating1, leaderboard_name2, rating2
-  );
-}
-
-fn write_output(
+fn write_output_csv(
   player_name: String,
   records: &std::collections::HashMap<i32, player_tracker::Record>,
   players: &std::collections::HashMap<i32, fetch::MatchHistoryPlayerResponse>,
@@ -54,7 +28,7 @@ fn write_output(
       None => {
         println!("Continued {}", enemy_profile_id);
         continue;
-      },
+      }
       Some(player) => record.format(player),
     };
     write!(output, "{}\n", row)?;
@@ -64,24 +38,11 @@ fn write_output(
 }
 
 fn run(player_name_arg: &str, leaderboard_name_arg: &str) -> Result<(), RuntimeError> {
-  let mut players: std::collections::HashMap<i32, fetch::MatchHistoryPlayerResponse> =
-    std::collections::HashMap::new();
-
-  let leaderboard_id = if leaderboard_name_arg == "solo" {
-    println!("Fetching match history for RANKED_SOLO");
-    fetch::LeaderboardId::RankedSolo
-  } else {
-    println!("Fetching match history for RANKED_TEAM");
-    fetch::LeaderboardId::RankedTeam
-  };
-  let leaderboard_id_alt = if leaderboard_id == fetch::LeaderboardId::RankedSolo {
-    fetch::LeaderboardId::RankedTeam
-  } else {
-    fetch::LeaderboardId::RankedSolo
-  };
-
-  let leaderboard_name = leaderboard_id_to_name(leaderboard_id);
-  let leaderboard_name_alt = leaderboard_id_to_name(leaderboard_id_alt);
+  let leaderboard_id = format::get_leaderboard_id_from_name(&leaderboard_name_arg);
+  let leaderboard_id_alt = format::get_opposite_leaderboard_id(leaderboard_id);
+  let leaderboard_name = format::leaderboard_id_to_name(leaderboard_id);
+  let leaderboard_name_alt = format::leaderboard_id_to_name(leaderboard_id_alt);
+  println!("Fetching match history for {}", leaderboard_name);
 
   println!(
     "Searching ranked {} playlist for player named '{}'...",
@@ -113,23 +74,12 @@ fn run(player_name_arg: &str, leaderboard_name_arg: &str) -> Result<(), RuntimeE
   let most_recent_game = &match_history[0];
   println!("Processing match history: {} games", match_history.len());
 
-  for i in (0..match_history.len() - 1).rev() {
-    let game = &match_history[i];
-    pt.process_match(game);
-    let other_team = game.get_opposing_team(profile_id);
-    for &enemy_player in &other_team {
-      players.insert(enemy_player.get_profile_id(), enemy_player.clone());
-    }
-    let my_team = game.get_my_team(profile_id);
-    for &ally_player in &my_team {
-      players.insert(ally_player.get_profile_id(), ally_player.clone());
-    }
-  }
+  pt.track_players(&match_history);
 
   println!("");
   println!(
     "Most recent game: {}",
-    timestamp_to_date(most_recent_game.started)
+    format::timestamp_to_date(most_recent_game.started)
   );
   println!("");
 
@@ -148,7 +98,7 @@ fn run(player_name_arg: &str, leaderboard_name_arg: &str) -> Result<(), RuntimeE
     other_team_records += &format!(
       "  {} {}: wins against {}, losses to {}\n",
       enemy_player.get_name(),
-      ratings_to_string(
+      format::ratings_to_string(
         &leaderboard_name,
         enemy_player.get_rating(),
         &leaderboard_name_alt,
@@ -178,7 +128,7 @@ fn run(player_name_arg: &str, leaderboard_name_arg: &str) -> Result<(), RuntimeE
   println!(
     "{}:{}",
     player_resp.name,
-    ratings_to_string(
+    format::ratings_to_string(
       &leaderboard_name,
       player_resp.get_rating(),
       &leaderboard_name_alt,
@@ -216,10 +166,10 @@ fn run(player_name_arg: &str, leaderboard_name_arg: &str) -> Result<(), RuntimeE
   );
   println!("{}", other_team_records);
 
-  write_output(
+  write_output_csv(
     format!("{}_{}", player_resp.name, leaderboard_name),
     &pt.records,
-    &players,
+    &pt.players,
   )?;
 
   // for (enemy_profile_id, record) in pt.records.iter() {
@@ -238,8 +188,14 @@ fn main() {
   let mut leaderboard_name: String = String::from("");
   let is_error = match args.len() {
     1 => {
-      println!("No args given, expected `<player_name> <?leaderboard_id>`");
-      true
+      println!("No args given, running as web server.`");
+      std::process::exit(match server::listen() {
+        Ok(_) => 0,
+        Err(err) => {
+          eprintln!("error: {:?}", err);
+          1
+        }
+      })
     }
     2 => {
       player_name = String::from(&args[1]);
@@ -257,6 +213,7 @@ fn main() {
   };
 
   if is_error {
+    println!("An error occurred.");
     return;
   }
 

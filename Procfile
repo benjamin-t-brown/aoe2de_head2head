@@ -1,0 +1,1 @@
+web: ./target/release/aoe2de_head2head
