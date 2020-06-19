@@ -4,5 +4,4 @@ rust:
 - stable
 script:
 - |
-  cargo build -vv --release &&
-  cargo test
+  cargo build -vv --release
