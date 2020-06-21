@@ -11,7 +11,7 @@ pub fn timestamp_to_date(timestamp: i64) -> String {
 }
 
 pub fn leaderboard_id_to_name(leaderboard_id: fetch::LeaderboardId) -> String {
-  return if leaderboard_id == fetch::LeaderboardId::RankedSolo {
+    return if leaderboard_id == fetch::LeaderboardId::RankedSolo {
     String::from("solo")
   } else {
     String::from("team")
