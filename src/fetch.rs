@@ -91,6 +91,9 @@ impl Serialize for MatchHistoryPlayerResponse {
     state.serialize_field("profile_id", &self.profile_id)?;
     state.serialize_field("steam_id", &self.get_steam_id())?;
     state.serialize_field("name", &self.get_name())?;
+    state.serialize_field("team", &self.team)?;   
+    state.serialize_field("won", &self.won)?;
+    state.serialize_field("rating", &self.rating)?;
     state.end()
   }
 }
@@ -134,7 +137,7 @@ impl MatchHistoryPlayerResponse {
   }
 }
 
-#[derive(serde::Deserialize, Debug, Clone, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default)]
 pub struct MatchHistoryGameResponse {
   pub match_id: String,
   pub num_players: Option<i32>,
@@ -274,7 +277,7 @@ pub fn fetch_rating(name: &str, leaderboard_id: LeaderboardId) -> i32 {
     Ok(v) => v,
     Err(err) => {
       eprintln!("error: {:?}", err);
-      1
+      0
     }
   };
 }

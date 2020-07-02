@@ -25,6 +25,9 @@ const useStyles = makeStyles(() => {
       justifyContent: 'space-between',
       alignItems: 'center',
       width: '550px',
+      padding: '10px',
+      background: 'rgba(0, 0, 0, 0.1)',
+      boxShadow: '0px 0px 5px 4px rgba(0, 0, 0, 0.1)',
     },
   };
 });
@@ -60,7 +63,7 @@ const PlayerLookupInput = (props: PlayerLookupInputProps) => {
             (ev as any).which === 13 &&
             !(props.isLoading || playerName.length < 3)
           ) {
-            props.onSubmit(playerName, leaderboardName);
+            props.onSubmit(playerName.trim(), leaderboardName);
           }
         }}
       />

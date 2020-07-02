@@ -8,6 +8,9 @@ import theme, { ColorBackground } from './theme';
 import PlayerRecordsTable from './components/PlayerRecordsTable';
 import PlayerLookupInput from './components/PlayerLookupInput';
 import PlayerInfo from './components/PlayerInfo';
+import CurrentGameInfo, {
+  gameResponseToProps,
+} from './components/CurrentGameInfo';
 import { useGet } from './hooks/axiosHooks';
 
 const MUITheme = createMuiTheme(theme);
@@ -40,6 +43,10 @@ const useAppStyles = makeStyles(theme => {
       justifyContent: 'flex-start',
       alignItems: 'center',
       height: '100%',
+      color: 'white',
+      padding: '0px 10px',
+      background: 'rgba(0, 0, 0, 0.1)',
+      boxShadow: '0px -4px 5px 4px rgba(0, 0, 0, 0.1)',
     },
     headerRight: {
       display: 'flex',
@@ -51,6 +58,14 @@ const useAppStyles = makeStyles(theme => {
       width: '24px',
       cursor: 'pointer',
       marginLeft: '10px',
+      borderRadius: '24px',
+      background: 'rgba(0, 0, 0, 0.1)',
+      boxShadow: '0px 0px 5px 4px rgba(0, 0, 0, 0.1)',
+      transition: 'background 0.5s, box-shadow 0.5s',
+      '&:hover': {
+        background: 'rgba(0, 0, 0, 0.3)',
+        boxShadow: '0px 0px 5px 4px rgba(0, 0, 0, 0.3)',
+      }
     },
     pageContent: {
       marginTop: '50px',
@@ -72,6 +87,9 @@ const useAppStyles = makeStyles(theme => {
       justifyContent: 'center',
       marginTop: '2rem',
     },
+    currentGameContainer: {
+      marginTop: '2rem',
+    },
     infoContainer: {
       marginTop: '2rem',
     },
@@ -91,6 +109,7 @@ const useAppStyles = makeStyles(theme => {
       position: 'absolute',
       bottom: 0,
       margin: '2rem',
+      width: 'calc(100% - 4rem)',
     },
   };
 });
@@ -116,8 +135,6 @@ const App = (): JSX.Element => {
     playerNameQuery ? `lookup/${playerNameQuery}/${leaderboardNameQuery}` : ''
   );
 
-  console.log('got data', response?.data, loading, error);
-
   return (
     <ThemeProvider theme={MUITheme}>
       <div className={classes.app}>
@@ -141,10 +158,21 @@ const App = (): JSX.Element => {
               defaultLeaderboardName={defaultLeaderboardName}
             />
           </div>
+          <div className={classes.currentGameContainer}>
+            {!loading && response?.data.most_recent_game ? (
+              <CurrentGameInfo
+                {...gameResponseToProps(
+                  response?.data.profile_id,
+                  response?.data.most_recent_game
+                )}
+              />
+            ) : null}
+          </div>
           <div className={classes.infoContainer}>
             {!loading ? (
               <PlayerInfo
                 playerName={response?.data.player_name}
+                playerId={response?.data.profile_id}
                 leaderboardName={leaderboardNameQuery}
                 numRecords={
                   Object.keys(response?.data.tracker.records || {}).length

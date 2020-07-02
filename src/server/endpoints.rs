@@ -1,6 +1,5 @@
 use actix_web::{get, Responder, HttpResponse, HttpRequest, web};
 use actix_files::NamedFile;
-// use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 use crate::error::RuntimeError;
 use crate::player_tracker;
@@ -17,6 +16,7 @@ struct LookupPlayerResponse {
   leaderboard_id: i32,
   leaderboard_name: String,
   tracker: player_tracker::PlayerTracker,
+  most_recent_game: fetch::MatchHistoryGameResponse,
 }
 
 fn log_request(req: &HttpRequest) {
@@ -57,6 +57,7 @@ async fn create_lookup_player_response(
     leaderboard_id: leaderboard_id as i32,
     leaderboard_name,
     tracker: pt,
+    most_recent_game: match_history[0].clone(),
   })
 }
 

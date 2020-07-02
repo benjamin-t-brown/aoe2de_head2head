@@ -27,7 +27,6 @@ const StyledTableCell = withStyles(theme => ({
 
 const StyledTableRow = withStyles(theme => ({
   root: {
-    // background: ColorBackground,
     '&:nth-of-type(odd)': {
       backgroundColor: theme.palette.action.hover,
     },

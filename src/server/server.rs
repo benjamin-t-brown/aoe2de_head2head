@@ -1,7 +1,8 @@
 extern crate actix_web;
+extern crate actix_files;
 use actix_web::{App, HttpServer};
 use actix_files as fs;
-use crate::endpoints::*;
+use crate::server::endpoints::*;
 
 #[actix_rt::main]
 pub async fn listen() -> std::io::Result<()> {

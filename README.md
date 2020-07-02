@@ -2,6 +2,8 @@
 
 This is a command line app that uses the aoe2.net api to lookup a user by team ranking and output their win/loss records vs other players.
 
+Live version at [aoe2de-head2head.herokuapp.com/](https://aoe2de-head2head.herokuapp.com/)
+
 ## Features
 - Outputs a csv of player matchup information (wins and losses)
 - Shows the team elo of all players in the most recent (including current) game being played
@@ -9,9 +11,17 @@ This is a command line app that uses the aoe2.net api to lookup a user by team r
 ## Requires
 
 Rust toolchain (cargo, rustc, etc.)
-
+Yarn + Nodejs 10.16 (for ui)
 
 ## Usage
+*Server*
+
+```
+    cargo run
+```
+
+*Command line*
+
 ```
     cargo run "<playerName>"
 ```

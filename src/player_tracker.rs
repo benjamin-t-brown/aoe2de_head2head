@@ -77,47 +77,83 @@ impl PlayerTracker {
     }
   }
   pub fn track_players(&mut self, match_history: &std::vec::Vec<fetch::MatchHistoryGameResponse>) {
-    let profile_id = self.profile_id;
     println!("Processing match history: {} games", match_history.len());
 
-    for i in (0..match_history.len() - 1).rev() {
+    for i in 1..match_history.len() {
       let game = &match_history[i];
-      self.process_match(game);
-      let other_team = game.get_opposing_team(profile_id);
-      for &enemy_player in &other_team {
-        self
-          .players
-          .insert(enemy_player.get_profile_id(), enemy_player.clone());
+      let future_game = &match_history[i - 1];
+      self.process_match(game, future_game);
+    }
+
+    if match_history.len() > 0 {
+      let most_recent_game = &match_history[0];
+      let is_game_in_progress = most_recent_game.finished.unwrap_or(0) == 0;
+      if !is_game_in_progress {
+        self.process_match(most_recent_game, most_recent_game);
       }
-      let my_team = game.get_my_team(profile_id);
-      for &ally_player in &my_team {
-        self
-          .players
-          .insert(ally_player.get_profile_id(), ally_player.clone());
+    }
+  }
+  pub fn process_match(
+    &mut self,
+    game: &fetch::MatchHistoryGameResponse,
+    future_game: &fetch::MatchHistoryGameResponse,
+  ) {
+    let player = game.get_player_by_profile_id(self.profile_id).unwrap();
+    let is_win = match player.won {
+      Some(is_win) => is_win,
+      None => {
+        let player_in_future_game = future_game
+          .get_player_by_profile_id(self.profile_id)
+          .unwrap_or(player);
+        let future_rating = player_in_future_game.get_rating();
+        let rating = player.get_rating();
+        if rating > future_rating {
+          false
+        } else if rating < future_rating {
+          true
+        } else {
+          println!(
+            "Cannot determine if win or loss future_game_id={} future_rating={} game_id={} rating={}",
+            future_game.get_match_id(), future_rating, game.get_match_id(), rating
+          );
+          return;
+        }
       }
+    };
+    let other_team_profile_ids = game.get_opposing_team_profile_ids(self.profile_id);
+    for profile_id in &other_team_profile_ids {
+      self.add_record(*profile_id, is_win, game);
+    }
+
+    let other_team = game.get_opposing_team(self.profile_id);
+    for &enemy_player in &other_team {
+      self
+        .players
+        .insert(enemy_player.get_profile_id(), enemy_player.clone());
+    }
+    let my_team = game.get_my_team(self.profile_id);
+    for &ally_player in &my_team {
+      self
+        .players
+        .insert(ally_player.get_profile_id(), ally_player.clone());
     }
   }
 
   pub fn add_record(
     &mut self,
     other_profile_id: i32,
-    is_win: Option<bool>,
+    is_win: bool,
     game: &fetch::MatchHistoryGameResponse,
   ) {
     let mut win_ctr = 0;
     let mut loss_ctr = 0;
-    match is_win {
-      Some(won) => {
-        if won {
-          self.wins += 1;
-          win_ctr = 1;
-        } else {
-          self.losses += 1;
-          loss_ctr = 1;
-        }
-      }
-      None => (),
-    };
+    if is_win {
+      self.wins += 1;
+      win_ctr = 1;
+    } else {
+      self.losses += 1;
+      loss_ctr = 1;
+    }
 
     let mut record = match self.records.get_mut(&other_profile_id) {
       None => {
@@ -148,16 +184,6 @@ impl PlayerTracker {
     match self.records.get(&other_profile_id) {
       None => (0, 0),
       Some(record) => (record.wins_against, record.losses_to),
-    }
-  }
-  pub fn process_match(&mut self, game: &fetch::MatchHistoryGameResponse) {
-    let is_win = match game.get_player_by_profile_id(self.profile_id) {
-      Some(p) => p.won,
-      None => None,
-    };
-    let other_team_profile_ids = game.get_opposing_team_profile_ids(self.profile_id);
-    for profile_id in &other_team_profile_ids {
-      self.add_record(*profile_id, is_win, game);
     }
   }
 }

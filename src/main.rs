@@ -1,4 +1,3 @@
-mod endpoints;
 mod error;
 mod fetch;
 mod format;
@@ -71,11 +70,11 @@ fn run(player_name_arg: &str, leaderboard_name_arg: &str) -> Result<(), RuntimeE
     return Err(RuntimeError::new("Player has not played any team games."));
   }
 
-  let most_recent_game = &match_history[0];
   println!("Processing match history: {} games", match_history.len());
 
   pt.track_players(&match_history);
 
+  let most_recent_game = &match_history[0];
   println!("");
   println!(
     "Most recent game: {}",

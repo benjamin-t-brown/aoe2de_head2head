@@ -1,8 +1,11 @@
 [package]
 name = "aoe2de_head2head"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Benjamin Brown <benjamin.t.brown@hotmail.com>"]
 edition = "2018"
+description = "A server and command line app that uses the aoe2.net api to lookup an Age of Empires 2: DE player by team ranking and output their win/loss records vs other players."
+repository = "https://github.com/benjamin-t-brown/chasmatica"
+license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

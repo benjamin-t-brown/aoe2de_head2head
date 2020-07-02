@@ -6,10 +6,10 @@ export const ColorBackground = '#C39568';
 const ColorLink = '#005DFF';
 const ColorHighlight = '#B3D6FF';
 
-const ColorDanger = '#b52513';
-const ColorSuccess = '#6986af';
+const ColorDanger = '#cc412f';
+const ColorSuccess = '#69af69';
 const ColorWarning = '#C39568';
-const ColorNeutral = '#2A2C2D';
+const ColorNeutral = '#98a6ad';
 const ColorInfo = '#794C39';
 
 export default {
