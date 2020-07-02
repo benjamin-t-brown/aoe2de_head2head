@@ -89,6 +89,8 @@ const useAppStyles = makeStyles(theme => {
     },
     currentGameContainer: {
       marginTop: '2rem',
+      display: 'flex',
+      justifyContent: 'center',
     },
     infoContainer: {
       marginTop: '2rem',

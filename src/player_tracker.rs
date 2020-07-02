@@ -79,7 +79,7 @@ impl PlayerTracker {
   pub fn track_players(&mut self, match_history: &std::vec::Vec<fetch::MatchHistoryGameResponse>) {
     println!("Processing match history: {} games", match_history.len());
 
-    for i in 1..match_history.len() {
+    for i in (1..match_history.len()).rev() {
       let game = &match_history[i];
       let future_game = &match_history[i - 1];
       self.process_match(game, future_game);
@@ -155,6 +155,8 @@ impl PlayerTracker {
       loss_ctr = 1;
     }
 
+    let last_played_against = crate::format::timestamp_to_date(game.started);
+
     let mut record = match self.records.get_mut(&other_profile_id) {
       None => {
         self.records.insert(
@@ -164,7 +166,7 @@ impl PlayerTracker {
             wins_against: win_ctr,
             losses_to: loss_ctr,
             games: vec![game.clone()],
-            last_played_against: crate::format::timestamp_to_date(game.started),
+            last_played_against,
           },
         );
         return;
@@ -177,7 +179,7 @@ impl PlayerTracker {
     } else if loss_ctr == 1 {
       record.losses_to += 1
     }
-
+    record.last_played_against = last_played_against;
     record.games.push(game.clone());
   }
   pub fn get_win_loss_record(&self, other_profile_id: i32) -> (i32, i32) {

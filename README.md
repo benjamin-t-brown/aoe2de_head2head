@@ -2,7 +2,7 @@
 
 This is a command line app that uses the aoe2.net api to lookup a user by team ranking and output their win/loss records vs other players.
 
-Live version at [aoe2de-head2head.herokuapp.com/](https://aoe2de-head2head.herokuapp.com/)
+Live version at [aoe2de-head2head.herokuapp.com](https://aoe2de-head2head.herokuapp.com)
 
 ## Features
 - Outputs a csv of player matchup information (wins and losses)

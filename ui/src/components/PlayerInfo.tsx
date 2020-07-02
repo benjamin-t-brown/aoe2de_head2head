@@ -1,14 +1,12 @@
 import React from 'react';
 import { makeStyles } from '@material-ui/core/styles';
-import theme from '../theme';
+import PlayerNameLink from './PlayerNameLink';
 
 const usePlayerInfoStyles = makeStyles({
-  link: {
-    cursor: 'pointer',
-    color: theme.palette.typography.link,
-    '&:hover': {
-      textDecoration: 'underline',
-    },
+  playerLink: {
+    background: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: '5px',
+    padding: '5px',
   },
 });
 
@@ -30,13 +28,11 @@ const PlayerInfo = (props: PlayerInfoProps) => {
     <div>
       Displaying {props.numRecords} players for leaderboard "
       {props.leaderboardName}", player{' '}
-      <span
-        className={classes.link}
-        onClick={() => {
-          window.open(`https://aoe2.net/#profile-${props.playerId}`);
-        }}
-      >
-        {props.playerName}
+      <span className={classes.playerLink}>
+        <PlayerNameLink
+          playerId={props.playerId}
+          playerName={props.playerName}
+        />
       </span>
     </div>
   );

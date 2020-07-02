@@ -12,6 +12,7 @@ export interface LookupQueryParams {
 interface LookupQueryPlayersResult {
   [profile_id: string]: {
     profile_id: string;
+    rating: string;
     steam_id: string;
     name: string;
   };

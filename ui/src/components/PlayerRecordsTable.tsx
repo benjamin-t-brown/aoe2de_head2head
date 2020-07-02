@@ -11,6 +11,7 @@ import { makeStyles, withStyles } from '@material-ui/core/styles';
 import moment from 'moment';
 import { LookupQueryResult } from '../hooks/axiosHooks';
 import theme from '../theme';
+import PlayerNameLink from './PlayerNameLink';
 
 const SORT_DIR_ASC = 'asc';
 const SORT_DIR_DSC = 'dsc';
@@ -146,6 +147,16 @@ const PlayerRecordsTable = (props: PlayerRecordsTable) => {
             </StyledTableCell>
             <StyledTableCell
               onClick={() => {
+                handleTableHeaderClick('rating');
+              }}
+              className={classes.tableHeadCell}
+              align="center"
+            >
+              Rating Last Played{' '}
+              {sortColumn === 'rating' ? `(${sortDirection})` : ''}
+            </StyledTableCell>
+            <StyledTableCell
+              onClick={() => {
                 handleTableHeaderClick('num_games');
               }}
               className={classes.tableHeadCell}
@@ -194,18 +205,13 @@ const PlayerRecordsTable = (props: PlayerRecordsTable) => {
             return (
               <StyledTableRow key={profileId}>
                 <StyledTableCell component="th" scope="row">
-                  <span
-                    className={classes.link}
-                    onClick={() => {
-                      window.open(
-                        `https://aoe2.net/#profile-${
-                          player.steam_id || player.profile_id
-                        }`
-                      );
-                    }}
-                  >
-                    {player.name}
-                  </span>
+                  <PlayerNameLink
+                    playerId={player.steam_id || player.profile_id}
+                    playerName={player.name}
+                  />
+                </StyledTableCell>
+                <StyledTableCell component="th" scope="row">
+                  {player.rating}
                 </StyledTableCell>
                 <StyledTableCell align="right">
                   {record.wins_against + record.losses_to}
