@@ -4,14 +4,15 @@ import {
   ThemeProvider,
   makeStyles,
 } from '@material-ui/core/styles';
-import theme, { ColorBackground } from './theme';
+import theme, { ColorHeader } from './theme';
 import PlayerRecordsTable from './components/PlayerRecordsTable';
 import PlayerLookupInput from './components/PlayerLookupInput';
 import PlayerInfo from './components/PlayerInfo';
 import CurrentGameInfo, {
   gameResponseToProps,
 } from './components/CurrentGameInfo';
-import { useGet } from './hooks/axiosHooks';
+import { useGet, clearCache, getCacheKey } from './hooks/axiosHooks';
+import { getNameAndLeaderboardFromHash } from './utils';
 
 const MUITheme = createMuiTheme(theme);
 
@@ -29,12 +30,12 @@ const useAppStyles = makeStyles(theme => {
       position: 'fixed',
       top: '0px',
       width: '100%',
-      background: ColorBackground,
+      background: ColorHeader,
     },
     headerSize: {
       position: 'relative',
       height: '50px',
-      width: '1200px',
+      minWidth: '1000px',
       display: 'flex',
       justifyContent: 'space-between',
     },
@@ -65,7 +66,7 @@ const useAppStyles = makeStyles(theme => {
       '&:hover': {
         background: 'rgba(0, 0, 0, 0.3)',
         boxShadow: '0px 0px 5px 4px rgba(0, 0, 0, 0.3)',
-      }
+      },
     },
     pageContent: {
       marginTop: '50px',
@@ -101,7 +102,7 @@ const useAppStyles = makeStyles(theme => {
       marginTop: '2rem',
     },
     tableSize: {
-      width: '1200px',
+      minWidth: '1000px',
       marginBottom: '5rem',
     },
     errorText: {
@@ -116,15 +117,14 @@ const useAppStyles = makeStyles(theme => {
   };
 });
 
+let skipNextHashChange = false;
 const App = (): JSX.Element => {
   const classes = useAppStyles();
 
-  const defaultPlayerName =
-    window.location.hash.slice(1).split(',')[0].slice(0, 25) || '';
-  let defaultLeaderboardName = window.location.hash.slice(1).split(',')[1];
-  if (defaultLeaderboardName !== 'solo' && defaultLeaderboardName !== 'team') {
-    defaultLeaderboardName = '';
-  }
+  const [
+    defaultPlayerName,
+    defaultLeaderboardName,
+  ] = getNameAndLeaderboardFromHash(window.location.hash);
 
   const [playerNameQuery, setPlayerNameQuery] = React.useState(
     defaultPlayerName
@@ -133,8 +133,42 @@ const App = (): JSX.Element => {
     defaultLeaderboardName
   );
 
+  React.useEffect(() => {
+    const onHashChange = (ev: HashChangeEvent) => {
+      if (skipNextHashChange) {
+        skipNextHashChange = false;
+        return;
+      }
+      if (
+        ev.newURL !== ev.oldURL &&
+        ev.newURL.includes(window.location.hostname)
+      ) {
+        const newHash = ev.newURL.slice(ev.newURL.indexOf('#'));
+        const [newPlayerName, newLeaderboard] = getNameAndLeaderboardFromHash(
+          newHash
+        );
+        setPlayerNameQuery(newPlayerName);
+        setPlayerNameQuery(newPlayerName);
+        setLeaderboardNameQuery(newLeaderboard);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+    };
+  });
+
+  const setHash = (value: string) => {
+    skipNextHashChange = true;
+    window.location.hash = value;
+  };
+
+  const getApiUrl = (playerName: string, leaderboardName: string) => {
+    return playerName ? `lookup/${playerName}/${leaderboardName}` : '';
+  };
+
   const [response, loading, error] = useGet(
-    playerNameQuery ? `lookup/${playerNameQuery}/${leaderboardNameQuery}` : ''
+    getApiUrl(playerNameQuery, leaderboardNameQuery)
   );
 
   return (
@@ -152,9 +186,14 @@ const App = (): JSX.Element => {
             <PlayerLookupInput
               isLoading={loading}
               onSubmit={(playerName, leaderboardName) => {
+                const cacheKey = getCacheKey(
+                  getApiUrl(playerName, leaderboardName),
+                  ''
+                );
+                clearCache(cacheKey);
                 setPlayerNameQuery(playerName);
                 setLeaderboardNameQuery(leaderboardName);
-                window.location.hash = `${playerName},${leaderboardName}`;
+                setHash(`${playerName},${leaderboardName}`);
               }}
               defaultName={defaultPlayerName}
               defaultLeaderboardName={defaultLeaderboardName}
@@ -179,6 +218,9 @@ const App = (): JSX.Element => {
                 numRecords={
                   Object.keys(response?.data.tracker.records || {}).length
                 }
+                numGames={
+                  response?.data.tracker.wins + response?.data.tracker.losses
+                }
               />
             ) : null}
           </div>
@@ -189,15 +231,16 @@ const App = (): JSX.Element => {
                   loading={loading}
                   error={error}
                   data={response?.data}
+                  leaderboardName={leaderboardNameQuery}
                 />
               ) : null}
             </div>
           </div>
           <header className={classes.appHeader}>
             <div className={classes.headerSize}>
-              <div className={classes.headerLeft}>
+              <a className={classes.headerLeft} href={window.location.origin}>
                 AOE2: DE Head2Head - Matchup Tracker
-              </div>
+              </a>
               <div className={classes.headerRight}>
                 <img
                   src="static/aoe2net.png"

@@ -5,7 +5,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormControl from '@material-ui/core/FormControl';
 import FormLabel from '@material-ui/core/FormLabel';
 import { makeStyles, withStyles } from '@material-ui/core/styles';
-
+import { getNameAndLeaderboardFromHash } from '../utils';
 import Button from '../elements/Button';
 import TextInput from '../elements/TextInput';
 
@@ -41,11 +41,22 @@ interface PlayerLookupInputProps {
 
 const PlayerLookupInput = (props: PlayerLookupInputProps) => {
   const [playerName, setPlayerName] = React.useState(props.defaultName || '');
-
   const [leaderboardName, setLeaderboardName] = React.useState(
     props.defaultLeaderboardName || 'solo'
   );
   const classes = useStyles();
+
+  React.useEffect(() => {
+    const onHashChange = (ev: HashChangeEvent) => {
+      const newHash = ev.newURL.slice(ev.newURL.indexOf('#'));
+      const [newPlayerName] = getNameAndLeaderboardFromHash(newHash);
+      setPlayerName(newPlayerName);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+    };
+  });
 
   const handleLeaderboardNameClick = (ev: React.SyntheticEvent) => {
     setLeaderboardName((ev.target as HTMLInputElement).value);

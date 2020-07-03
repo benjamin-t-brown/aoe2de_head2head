@@ -59,6 +59,7 @@ interface CurrentGameInfoProps {
   isWin: boolean;
   myTeamPlayers: Player[];
   otherTeamPlayers: Player[];
+  date: string;
 }
 
 export const gameResponseToProps = (
@@ -107,6 +108,7 @@ export const gameResponseToProps = (
     isWin: !!isWin,
     myTeamPlayers,
     otherTeamPlayers,
+    date: new Date(gameResponse.started * 1000).toLocaleString(),
   };
 };
 
@@ -131,7 +133,14 @@ const CurrentGameInfo = (props: CurrentGameInfoProps) => {
         <table className={classes.table}>
           <thead>
             <tr>
-              <th>{props.playerName}'s Team</th>
+              <th
+                style={{
+                  minWidth: '180px',
+                  textAlign: 'left',
+                }}
+              >
+                {props.playerName}'s Team
+              </th>
               <th>Opposing Team</th>
             </tr>
           </thead>

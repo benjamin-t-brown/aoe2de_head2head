@@ -1,7 +1,12 @@
 {
   "cSpell.words": [
+    "actix",
+    "datetime",
+    "isdarkmode",
+    "lastmatch",
     "leaderboard",
     "reqwest",
-    "actix"
+    "rusqlite",
+    "strftime"
   ]
 }

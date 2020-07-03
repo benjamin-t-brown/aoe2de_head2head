@@ -1,7 +1,8 @@
 export const ColorPrimary = '#794C39';
 export const ColorSecondary = '#2A2C2D';
 
-export const ColorBackground = '#C39568';
+export const ColorHeader = '#C39568';
+export const ColorBackground = '#9e7853';
 
 const ColorLink = '#005DFF';
 const ColorHighlight = '#B3D6FF';

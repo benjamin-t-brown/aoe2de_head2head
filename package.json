@@ -10,11 +10,8 @@
     "node": "10.16.x",
     "yarn": "1.x"
   },
-  "dependencies": {
-    "axios": "^0.19.2",
-    "moment": "^2.26.0",
-    "react": "^16.12.0",
-    "react-dom": "^16.12.0",
-    "react-scripts": "3.4.1"
-  }
+  "scripts": {
+    "build": "cd ui && yarn && yarn build"
+  },
+  "dependencies": {}
 }

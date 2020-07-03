@@ -9,22 +9,18 @@ export interface LookupQueryParams {
   leaderboardName: string;
 }
 
-interface LookupQueryPlayersResult {
-  [profile_id: string]: {
-    profile_id: string;
-    rating: string;
-    steam_id: string;
-    name: string;
-  };
+export interface LookupQueryPlayerResult {
+  profile_id: string;
+  rating: string;
+  steam_id: string;
+  name: string;
 }
 
-interface LookupQueryRecordsResult {
-  [profile_id: string]: {
-    profile_id: string;
-    last_played_against: string;
-    losses_to: number;
-    wins_against: number;
-  };
+export interface LookupQueryRecordResult {
+  profile_id: string;
+  last_played_against: string;
+  losses_to: number;
+  wins_against: number;
 }
 
 export interface LookupQueryResult {
@@ -36,11 +32,15 @@ export interface LookupQueryResult {
   tracker: {
     wins: number;
     losses: number;
-    players: LookupQueryPlayersResult;
-    records: LookupQueryRecordsResult;
+    players: {
+      [profile_id: string]: LookupQueryPlayerResult;
+    };
+    records: {
+      [profile_id: string]: LookupQueryRecordResult;
+    };
   };
 }
-const cache = {};
+let cache = {};
 
 const outgoingRequests = {};
 
@@ -56,24 +56,30 @@ export const getCacheKey = (
   return type + '/' + url + '/' + (paramsStr || '');
 };
 
-export const clearCache = (key: string): boolean => {
-  if (cache[key]) {
-    delete cache[key];
+export const clearCache = (key?: string): boolean => {
+  if (key) {
+    if (cache[key]) {
+      delete cache[key];
+      return true;
+    }
+    return false;
+  } else {
+    cache = {};
     return true;
   }
-  return false;
 };
 
 export const useGet = function <QueryParamsType>(
   apiUrl: string,
   params?: QueryParamsType
-): [AxiosResponse | null, boolean, boolean] {
+): [AxiosResponse | null, boolean, boolean, string] {
   const [data, setData] = useState<AxiosResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   useEffect(() => {
     const requestData = async () => {
       if (!apiUrl) {
+        setData(null);
         setLoading(false);
         setError(false);
         return;
@@ -95,29 +101,30 @@ export const useGet = function <QueryParamsType>(
             console.log('get', cacheKey, response.data);
           }
           setData(response);
-          setLoading(false);
           setError(false);
+          setLoading(false);
           outgoingRequests[cacheKey] = false;
           cache[cacheKey] = response;
         } catch (e) {
           console.error('Failed to get', e);
           setError(true);
-          setData(null);
           setLoading(false);
+          setData(null);
         }
       }
     };
     requestData();
   }, [apiUrl, params]);
 
-  return [data, loading, error];
+  const cacheKey = getCacheKey('GET', apiUrl, JSON.stringify(params));
+  return [data, loading, error, cacheKey];
 };
 
 export const usePost = function <QueryParamsType, BodyParamsType>(
   apiUrl: string,
   params?: QueryParamsType,
   body?: BodyParamsType
-): [AxiosResponse | null, boolean, boolean] {
+): [AxiosResponse | null, boolean, boolean, string] {
   const [data, setData] = useState<AxiosResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -165,5 +172,10 @@ export const usePost = function <QueryParamsType, BodyParamsType>(
     requestData();
   }, [apiUrl, params, body]);
 
-  return [data, loading, error];
+  const cacheKey = getCacheKey(
+    'POST',
+    apiUrl,
+    '[' + JSON.stringify(params) + ',' + JSON.stringify(body) + ']'
+  );
+  return [data, loading, error, cacheKey];
 };

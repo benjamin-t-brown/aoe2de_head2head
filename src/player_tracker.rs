@@ -87,10 +87,7 @@ impl PlayerTracker {
 
     if match_history.len() > 0 {
       let most_recent_game = &match_history[0];
-      let is_game_in_progress = most_recent_game.finished.unwrap_or(0) == 0;
-      if !is_game_in_progress {
-        self.process_match(most_recent_game, most_recent_game);
-      }
+      self.process_match(most_recent_game, most_recent_game);
     }
   }
   pub fn process_match(
@@ -99,6 +96,7 @@ impl PlayerTracker {
     future_game: &fetch::MatchHistoryGameResponse,
   ) {
     let player = game.get_player_by_profile_id(self.profile_id).unwrap();
+    let mut is_game_in_progress = false;
     let is_win = match player.won {
       Some(is_win) => is_win,
       None => {
@@ -112,17 +110,37 @@ impl PlayerTracker {
         } else if rating < future_rating {
           true
         } else {
-          println!(
-            "Cannot determine if win or loss future_game_id={} future_rating={} game_id={} rating={}",
-            future_game.get_match_id(), future_rating, game.get_match_id(), rating
-          );
-          return;
+          if game.get_match_id() == future_game.get_match_id() {
+            is_game_in_progress = true;
+            false
+          } else {
+            println!(
+              "Disregarding incomplete game future_game_id={} future_rating={} game_id={} rating={}",
+              future_game.get_match_id(), future_rating, game.get_match_id(), rating
+            );
+            return;
+          }
         }
       }
     };
+
+    if is_game_in_progress {
+      println!("Game in progress!");
+    } else {
+      if is_win {
+        self.wins += 1;
+      } else {
+        self.losses += 1;
+      }
+    }
+
     let other_team_profile_ids = game.get_opposing_team_profile_ids(self.profile_id);
     for profile_id in &other_team_profile_ids {
-      self.add_record(*profile_id, is_win, game);
+      if is_game_in_progress {
+        self.add_current_game_record(*profile_id, game);
+      } else {
+        self.add_record(*profile_id, is_win, game);
+      }
     }
 
     let other_team = game.get_opposing_team(self.profile_id);
@@ -148,10 +166,8 @@ impl PlayerTracker {
     let mut win_ctr = 0;
     let mut loss_ctr = 0;
     if is_win {
-      self.wins += 1;
       win_ctr = 1;
     } else {
-      self.losses += 1;
       loss_ctr = 1;
     }
 
@@ -179,6 +195,33 @@ impl PlayerTracker {
     } else if loss_ctr == 1 {
       record.losses_to += 1
     }
+    record.last_played_against = last_played_against;
+    record.games.push(game.clone());
+  }
+  pub fn add_current_game_record(
+    &mut self,
+    other_profile_id: i32,
+    game: &fetch::MatchHistoryGameResponse,
+  ) {
+    let last_played_against = crate::format::timestamp_to_date(game.started);
+
+    let mut record = match self.records.get_mut(&other_profile_id) {
+      None => {
+        self.records.insert(
+          other_profile_id,
+          Record {
+            profile_id: other_profile_id,
+            wins_against: 0,
+            losses_to: 0,
+            games: vec![game.clone()],
+            last_played_against,
+          },
+        );
+        return;
+      }
+      Some(record) => record,
+    };
+
     record.last_played_against = last_played_against;
     record.games.push(game.clone());
   }

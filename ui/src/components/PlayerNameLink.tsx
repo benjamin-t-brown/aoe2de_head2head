@@ -18,7 +18,7 @@ const usePlayerNameLinkStyles = makeStyles({
   },
   linkLight: {
     cursor: 'pointer',
-    color: '#ddd',
+    color: '#adf',
     '&:hover': {
       textDecoration: 'underline',
     },
@@ -27,16 +27,17 @@ const usePlayerNameLinkStyles = makeStyles({
 
 const PlayerNameLink = (props: PlayerNameLinkProps) => {
   const classes = usePlayerNameLinkStyles();
+  let url = `https://aoe2.net/#profile-${props.playerId}`;
   return (
-    <span
-      title="aoe2.net link"
+    <a
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`aoe2.net: ${props.playerName}`}
       className={props.light ? classes.linkLight : classes.link}
-      onClick={() => {
-        window.open(`https://aoe2.net/#profile-${props.playerId}`);
-      }}
+      href={url}
     >
       {props.playerName}
-    </span>
+    </a>
   );
 };
 
