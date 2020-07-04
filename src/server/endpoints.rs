@@ -81,7 +81,7 @@ async fn create_lookup_player_response(
   leaderboard_id: fetch::LeaderboardId,
 ) -> Result<LookupPlayerResponse, RuntimeError> {
   let player_resp = lookup_player_with_cache(player_name, leaderboard_id).await?;
-  let player_name = player_resp.name;
+  let player_name = player_resp.name.clone();
   let profile_id = player_resp.profile_id;
   let leaderboard_name = format::leaderboard_id_to_name(leaderboard_id);
   let mut pt = player_tracker::PlayerTracker::new(profile_id);
@@ -99,15 +99,35 @@ async fn create_lookup_player_response(
     None => return Err(RuntimeError::new("Could not get last match")),
   };
 
+  let last_match = &mut last_match_resp.last_match.clone().unwrap();
+
+  let last_match_leaderboard_id =
+    fetch::LeaderboardId::to_leaderboard_id(last_match.leaderboard_id.unwrap_or(3));
+
+  // let player_in_last_match = match last_match.get_player_by_profile_id_mut(profile_id) {
+  //   Some(p) => p,
+  //   None => return Err(RuntimeError::new("Could not get last match")),
+  // };
+
+  // let rating_in_last_match = player_in_last_match.get_rating();
+  // let current_rating = player_resp.get_rating();
+  // if rating_in_last_match < current_rating {
+  //   player_in_last_match.won = Some(true);
+  // } else if rating_in_last_match > current_rating {
+  //   player_in_last_match.won = Some(false);
+  // }
+
   Ok(LookupPlayerResponse {
     profile_id,
     player_name,
     leaderboard_id: leaderboard_id as i32,
     leaderboard_name,
     tracker: pt,
-    most_recent_game: last_match_resp
-      .last_match
-      .unwrap_or(match_history[0].clone()),
+    most_recent_game: if last_match_leaderboard_id == leaderboard_id {
+      last_match.clone()
+    } else {
+      match_history[0].clone()
+    },
   })
 }
 

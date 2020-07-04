@@ -143,6 +143,17 @@ impl MatchHistoryGameResponse {
     }
     None
   }
+  pub fn get_player_by_profile_id_mut(
+    &mut self,
+    profile_id: i32,
+  ) -> Option<&mut MatchHistoryPlayerResponse> {
+    for player in self.players.iter_mut() {
+      if player.get_profile_id() == profile_id {
+        return Some(player);
+      }
+    }
+    None
+  }
   pub fn get_team(&self, team_id: i32) -> Vec<&MatchHistoryPlayerResponse> {
     let mut ret: Vec<&MatchHistoryPlayerResponse> = vec![];
     for player in &self.players {
@@ -290,11 +301,14 @@ pub async fn fetch_latest_match_async(
 ) -> Result<Option<LastMatchResponse>, reqwest::Error> {
   println!("Get lst match id: '{}'", profile_id);
   let url = format!(
-    "{}/player/lastmatch?game=aoe2de&start=0&profile_id={profile_id}",
+    "{}/player/matches?game=aoe2de&start=0&count=1&profile_id={profile_id}",
     AOE2NET_API_BASE_URL,
     profile_id = profile_id,
   );
   println!("[fetch] {}", url);
-  let last_match: LastMatchResponse = reqwest::get(&url).await?.json().await?;
-  Ok(Some(last_match))
+  let match_history: Vec<MatchHistoryGameResponse> = reqwest::get(&url).await?.json().await?;
+  Ok(Some(LastMatchResponse {
+    profile_id,
+    last_match: Some(match_history[0].clone()),
+  }))
 }
