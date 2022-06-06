@@ -21,6 +21,6 @@ actix-rt = "1.0.0"
 actix-files = "0.2.2"
 
 [dependencies.rusqlite]
-version = "0.21.0"
+version = "0.23.0"
 features = ["bundled"]
 # tokio = { version = "0.2", features = ["macros"] }
